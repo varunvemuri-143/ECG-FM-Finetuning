@@ -6,17 +6,17 @@ Scripts use **`--base-dir`** (or env **`ECG_FINETUNE_BASE`**) as the repository 
 
 ## labels/
 
-- **labels/raw_for_labeling/** — Raw inputs (e.g. machine_measurements.csv, MIMIC-IV-ECG format).
+- **labels/label_inputs/** — Inputs for the label script (e.g. machine_measurements.csv, MIMIC-IV-ECG format).
 - **labels/ecg_fm_labeler_config/** — ECG-FM pattern labeler config (JSONs + label_def.csv).
 - **labels/ecg_fm_labeler/** — ECG-FM pattern labeler Python package.
-- **labels/scripts/create_labels_ecgfm.py** — Builds label files; reads raw_for_labeling + config; writes to computed_labels.
+- **labels/scripts/create_labels_ecgfm.py** — Builds label files; reads label_inputs + config; writes to computed_labels.
 - **labels/computed_labels/** — Output: labels.csv, y.npy, y_soft.npy, label_def_recomputed.csv, pos_weight.txt, study_id_mapping.csv. Consumed by build.
 
 ### create_labels_ecgfm.py
 
 **Purpose:** Build label files using the ECG-FM pattern labeler. Reads machine_measurements, builds text from report_0..report_17, runs the labeler; writes 17 diagnostic labels and arrays.
 
-**Inputs:** labels/raw_for_labeling/machine_measurements.csv, labels/ecg_fm_labeler_config/, labels/ecg_fm_labeler/. Optional: split/data/meta_split.csv (for --split filter).
+**Inputs:** labels/label_inputs/machine_measurements.csv, labels/ecg_fm_labeler_config/, labels/ecg_fm_labeler/. Optional: split/data/meta_split.csv (for --split filter).
 
 **Outputs:** labels/computed_labels/ (labels.csv, y.npy, y_soft.npy, label_def_recomputed.csv, label_def_official_17.csv, pos_weight.txt, study_id_mapping.csv).
 

@@ -8,7 +8,7 @@ Reference for where inputs and outputs live. Data not in the repo (raw ECG, pret
 
 | What | Where |
 |------|--------|
-| Raw inputs for labeler | labels/raw_for_labeling/ (e.g. machine_measurements.csv, MIMIC-IV-ECG: study_id, report_0..report_17) |
+| Inputs for labeler | labels/label_inputs/ (e.g. machine_measurements.csv, MIMIC-IV-ECG: study_id, report_0..report_17) |
 | Labeler config | labels/ecg_fm_labeler_config/ (JSONs + label_def.csv; from ECG-FM) |
 | Labeler package | labels/ecg_fm_labeler/ (from ECG-FM) |
 | Label script | labels/scripts/create_labels_ecgfm.py |

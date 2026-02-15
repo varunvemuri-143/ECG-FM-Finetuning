@@ -13,7 +13,7 @@ git_ecg_finetuned/
 ├── FILE_LOCATIONS.md
 ├── requirements.txt
 ├── labels/
-│   ├── raw_for_labeling/      # Raw inputs for the label script
+│   ├── label_inputs/          # Inputs for the label script (e.g. machine_measurements.csv)
 │   ├── ecg_fm_labeler_config/ # ECG-FM labeler JSON config + label_def.csv
 │   ├── ecg_fm_labeler/        # ECG-FM pattern labeler Python package
 │   ├── scripts/
@@ -39,7 +39,7 @@ git_ecg_finetuned/
 finetuned_model/               # Fine-tuned .pt checkpoints
 ```
 
-- **labels/** — Raw inputs (raw_for_labeling), ECG-FM labeler config and package, label-creation script, and computed labels output.
+- **labels/** — Label inputs (label_inputs), ECG-FM labeler config and package, label-creation script, and computed labels output.
 - **split/** — Record list and split script; output meta_split.csv for preprocess and build.
 - **preprocess/** — Script that produces 10 s .mat (Lead I → 12 ch) from WFDB; output in preprocess/data/lead_1_duplicated/.
 - **build/** — Script that builds test and finetune sets (manifests, y.npy) from labels and preprocessed data.
@@ -69,7 +69,7 @@ finetuned_model/               # Fine-tuned .pt checkpoints
 
 | Step | Script | Reads | Writes |
 |------|--------|-------|--------|
-| 0 Labels | labels/scripts/create_labels_ecgfm.py | labels/raw_for_labeling/, ecg_fm_labeler_config/, ecg_fm_labeler/, optional split/data/meta_split.csv | labels/computed_labels/ |
+| 0 Labels | labels/scripts/create_labels_ecgfm.py | labels/label_inputs/, ecg_fm_labeler_config/, ecg_fm_labeler/, optional split/data/meta_split.csv | labels/computed_labels/ |
 | 1 Split | split/scripts/create_split.py | split/data/record_list.csv | split/data/meta_split.csv |
 | 2 Preprocess | preprocess/scripts/preprocess_ecgfm.py | split/data/, raw WFDB (--raw-root) | preprocess/data/lead_1_duplicated/ |
 | 3 Build | build/scripts/build_test_and_finetune_data.py | labels/computed_labels/, split/data/, preprocess/data/ | build/data/test_lead1_duplicated/, finetune_lead1_duplicated/ |

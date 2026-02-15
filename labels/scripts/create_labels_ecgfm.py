@@ -38,7 +38,7 @@ def _repo_paths(base_dir: Path) -> dict:
         "labeler_package": base_dir / "labels" / "ecg_fm_labeler",
         "labeler_config_dir": base_dir / "labels" / "ecg_fm_labeler_config",
         "official_label_def": base_dir / "labels" / "ecg_fm_labeler_config" / "label_def.csv",
-        "machine_meas": base_dir / "labels" / "raw_for_labeling" / "machine_measurements.csv",
+        "machine_meas": base_dir / "labels" / "label_inputs" / "machine_measurements.csv",
         "split_csv": base_dir / "split" / "data" / "meta_split.csv",
         "out_dir": base_dir / "labels" / "computed_labels",
     }
