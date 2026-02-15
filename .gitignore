@@ -1,0 +1,23 @@
+# Fine-tuned checkpoints (large)
+finetuned_model/*.pt
+
+# Large label/data files (uncomment if you do not want to commit them)
+# labels/computed_labels/labels.csv
+# labels/computed_labels/study_id_mapping.csv
+# labels/computed_labels/*.npy
+# split/data/record_list.csv
+
+# Pipeline outputs (optional: ignore so repo stays small)
+# preprocess/data/lead_1_duplicated/
+# build/data/
+# eval/data/
+
+# macOS
+.DS_Store
+
+# Python / env
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env

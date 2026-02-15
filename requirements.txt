@@ -1,0 +1,12 @@
+# ECG-FM fine-tuning pipeline
+numpy>=1.20
+pandas>=1.3
+scipy>=1.7
+wfdb>=4.0
+tqdm
+matplotlib>=3.3
+
+# For evaluation / training (install separately if needed)
+# torch>=1.10
+# ecg-transform==0.1.3
+# fairseq-signals (clone and install from repo)
