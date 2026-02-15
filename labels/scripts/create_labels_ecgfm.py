@@ -9,7 +9,7 @@ Reads MIMIC machine_measurements.csv (report_0..report_17), runs the ECG-FM patt
 labeler (config and code live under labels/ecg_fm_labeler_config/ and labels/ecg_fm_labeler/),
 and writes to labels/computed_labels/:
   - labels.csv (binary 0/1, N × 17)
-  - y.npy, y_soft.npy
+  - y.npy
   - label_def_recomputed.csv, label_def_official_17.csv
   - pos_weight.txt
   - study_id_mapping.csv
@@ -279,10 +279,9 @@ def main() -> int:
         y = np.column_stack(y_cols)
         y_soft = np.column_stack(y_soft_cols)
 
-    print(f"   ✓ y shape: {y.shape} | y_soft shape: {y_soft.shape}")
+    print(f"   ✓ y shape: {y.shape}")
 
     np.save(out_dir / "y.npy", y.astype("float32"))
-    np.save(out_dir / "y_soft.npy", y_soft.astype("float32"))
     label_def.to_csv(out_dir / "label_def_recomputed.csv", index=False)
     official_label_def.to_csv(out_dir / "label_def_official_17.csv", index=False)
     with open(out_dir / "pos_weight.txt", "w") as f:
@@ -301,7 +300,7 @@ def main() -> int:
     mapping.to_csv(out_dir / "study_id_mapping.csv", index=False)
 
     print("\n✅ Done. Outputs:")
-    for name in ["labels.csv", "y.npy", "y_soft.npy", "label_def_recomputed.csv", "pos_weight.txt", "study_id_mapping.csv"]:
+    for name in ["labels.csv", "y.npy", "label_def_recomputed.csv", "pos_weight.txt", "study_id_mapping.csv"]:
         print(f"   {out_dir / name}")
     return 0
 

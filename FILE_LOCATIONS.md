@@ -12,7 +12,7 @@ Reference for where inputs and outputs live. Data not in the repo (raw ECG, pret
 | Labeler config | labels/ecg_fm_labeler_config/ (JSONs + label_def.csv; from ECG-FM) |
 | Labeler package | labels/ecg_fm_labeler/ (from ECG-FM) |
 | Label script | labels/scripts/create_labels_ecgfm.py |
-| Computed labels | labels/computed_labels/ (labels.csv, y.npy, y_soft.npy, label_def_recomputed.csv, pos_weight.txt, study_id_mapping.csv; written by create_labels_ecgfm.py) |
+| Computed labels | labels/computed_labels/ (labels.csv, y.npy, label_def_recomputed.csv, pos_weight.txt, study_id_mapping.csv; written by create_labels_ecgfm.py) |
 
 ---
 

@@ -1,6 +1,9 @@
 # Fine-tuned checkpoints (large)
 finetuned_model/*.pt
 
+# Optional soft labels (not used by pipeline; script no longer writes it)
+labels/computed_labels/y_soft.npy
+
 # Large label/data files (uncomment if you do not want to commit them)
 # labels/computed_labels/labels.csv
 # labels/computed_labels/study_id_mapping.csv
