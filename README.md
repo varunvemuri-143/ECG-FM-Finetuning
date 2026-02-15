@@ -1,6 +1,6 @@
 # ECG-FM Lead-I Fine-Tuning
 
-This repository prepares **Lead I duplicated to 12 channels** data from MIMIC-IV-ECG and runs **ECG-FM fine-tuning** using the [fairseq_signals](https://github.com/Jwoo5/fairseq-signals) framework (Bowen Lab [ECG-FM](https://github.com/bowang-lab/ecg-fm)). Pipeline stages are top-level folders: **labels**, **split**, **preprocess**, **build**, **eval**. Each has **data/** and/or **scripts/** as needed.
+This repository contains a pipeline for **Lead I duplicated to 12 channels** data from MIMIC-IV-ECG and **ECG-FM fine-tuning** using the [fairseq_signals](https://github.com/Jwoo5/fairseq-signals) framework (Bowen Lab [ECG-FM](https://github.com/bowang-lab/ecg-fm)). Pipeline stages are top-level folders: **labels**, **split**, **preprocess**, **build**, **eval**.
 
 ---
 
@@ -10,91 +10,79 @@ This repository prepares **Lead I duplicated to 12 channels** data from MIMIC-IV
 git_ecg_finetuned/
 ├── README.md
 ├── SCRIPTS.md
-├── FILE_LOCATIONS.md          # What to put where (manual checklist)
+├── FILE_LOCATIONS.md
 ├── requirements.txt
-├── labels/                    # Labels: raw inputs, ECG-FM labeler, scripts, computed labels
-│   ├── raw_for_labeling/      # Put machine_measurements.csv here
-│   │   └── README.md
-│   ├── ecg_fm_labeler_config/ # ECG-FM labeler JSON config + label_def.csv (bundled)
-│   │   └── README.md
-│   ├── ecg_fm_labeler/        # ECG-FM pattern labeler Python package (bundled)
-│   │   └── README.md
+├── labels/
+│   ├── raw_for_labeling/      # Raw inputs for the label script
+│   ├── ecg_fm_labeler_config/ # ECG-FM labeler JSON config + label_def.csv
+│   ├── ecg_fm_labeler/        # ECG-FM pattern labeler Python package
 │   ├── scripts/
-│   │   └── create_labels_ecgfm.py   # Run this to build label files
-│   └── computed_labels/       # Output: labels.csv, y.npy, label_def, pos_weight.txt, etc.
-│       └── README.md
-├── split/                     # Train/valid/test split
-│   ├── data/                  # record_list.csv (input), meta_split.csv (output)
-│   │   └── README.md
+│   │   └── create_labels_ecgfm.py
+│   └── computed_labels/       # Label script output (labels.csv, y.npy, etc.)
+├── split/
+│   ├── data/                  # record_list.csv, meta_split.csv
 │   └── scripts/
 │       └── create_split.py
-├── preprocess/                # WFDB → 10 s .mat (Lead I → 12 ch)
-│   ├── data/                  # lead_1_duplicated/ (output)
-│   │   └── README.md
+├── preprocess/
+│   ├── data/                  # lead_1_duplicated/ (.mat output)
 │   └── scripts/
 │       └── preprocess_ecgfm.py
-├── build/                     # Test set + finetune manifests
-│   ├── data/                  # test_lead1_duplicated/, finetune_lead1_duplicated/ (output)
-│   │   └── README.md
+├── build/
+│   ├── data/                  # test_lead1_duplicated/, finetune_lead1_duplicated/
 │   └── scripts/
 │       └── build_test_and_finetune_data.py
-└── eval/                      # Evaluate checkpoint on test set
-    ├── data/                  # Predictions and metrics (output)
-    │   └── README.md
+└── eval/
+    ├── data/                  # Predictions and metrics output
     └── scripts/
         ├── eval_ecgfm.py
         └── eval_finetuned.py
-finetuned_model/               # (optional) Place your fine-tuned .pt checkpoint(s) here
+finetuned_model/               # Fine-tuned .pt checkpoints
 ```
 
-- **labels/raw_for_labeling/** — Put **machine_measurements.csv** here (MIMIC-IV-ECG; `study_id`, `report_0`..`report_17`).
-- **labels/ecg_fm_labeler_config/** — ECG-FM labeler config (JSONs + official label_def.csv). Bundled; do not edit unless syncing with ECG-FM.
-- **labels/ecg_fm_labeler/** — ECG-FM pattern labeler Python package. Bundled so the label step needs no external ECG-FM clone.
-- **labels/scripts/create_labels_ecgfm.py** — Run this to build label files from machine_measurements; writes to **labels/computed_labels/**.
-- **labels/computed_labels/** — Output: labels.csv, y.npy, y_soft.npy, label_def_recomputed.csv, pos_weight.txt, study_id_mapping.csv. Build reads from here.
-- **split/data/** — Input: `record_list.csv`. Output: `meta_split.csv`. Raw ECG is not in the repo; download MIMIC-IV-ECG and pass `--raw-root` to preprocess.
-- **finetuned_model/** — Optional: place your fine-tuned checkpoint(s) here; use `--model-path finetuned_model/checkpoint_best_loss_*.pt` for eval.
+- **labels/** — Raw inputs (raw_for_labeling), ECG-FM labeler config and package, label-creation script, and computed labels output.
+- **split/** — Record list and split script; output meta_split.csv for preprocess and build.
+- **preprocess/** — Script that produces 10 s .mat (Lead I → 12 ch) from WFDB; output in preprocess/data/lead_1_duplicated/.
+- **build/** — Script that builds test and finetune sets (manifests, y.npy) from labels and preprocessed data.
+- **eval/** — Scripts to run ECG-FM inference and write predictions and metrics to eval/data/.
+- **finetuned_model/** — Directory for fine-tuned checkpoints; eval scripts take a path via `--model-path`.
 
-See **FILE_LOCATIONS.md** for a full checklist of what to put where manually.
+[SCRIPTS.md](SCRIPTS.md) lists each script’s inputs and outputs. [FILE_LOCATIONS.md](FILE_LOCATIONS.md) summarizes file roles.
 
 ---
 
 ## Installation
 
-1. **fairseq_signals** (for fine-tuning and evaluation):
-   ```bash
-   git clone https://github.com/Jwoo5/fairseq-signals
-   cd fairseq-signals && pip install --editable ./
-   ```
-2. **This repo’s scripts** (split, preprocess, build): `pip install -r requirements.txt`. For eval: `ecg-transform`, `fairseq_signals`.
+- **fairseq_signals** (fine-tuning and evaluation):  
+  `git clone https://github.com/Jwoo5/fairseq-signals` then `pip install --editable ./`
+- **This repo:** `pip install -r requirements.txt`. Eval also requires `ecg-transform` and `fairseq_signals`.
 
 ---
 
-## Download data and model
+## Data and model
 
-- **Raw ECG:** [PhysioNet MIMIC-IV-ECG v1.0](https://physionet.org/content/mimic-iv-ecg/1.0/). Use its root as `--raw-root` in preprocess.
-- **Pretrained model:** [HuggingFace wanglab/ecg-fm](https://huggingface.co/wanglab/ecg-fm) — use **`mimic_iv_ecg_physionet_pretrained.pt`** for Lead I fine-tuning.
-
----
-
-## Pipeline (run from repo root)
-
-| Step | Command | Reads | Writes |
-|------|---------|-------|--------|
-| 0 Labels | `python labels/scripts/create_labels_ecgfm.py --base-dir .` | labels/raw_for_labeling/machine_measurements.csv, labels/ecg_fm_labeler_config/, labels/ecg_fm_labeler/, optional split/data/meta_split.csv | labels/computed_labels/ |
-| 1 Split | `python split/scripts/create_split.py --base-dir .` | split/data/record_list.csv | split/data/meta_split.csv |
-| 2 Preprocess | `python preprocess/scripts/preprocess_ecgfm.py --base-dir . --raw-root /path/to/mimic-iv-ecg` | split/data/, raw WFDB | preprocess/data/lead_1_duplicated/ |
-| 3 Build | `python build/scripts/build_test_and_finetune_data.py --base-dir .` | labels/computed_labels/, split/data/, preprocess/data/ | build/data/test_lead1_duplicated/, finetune_lead1_duplicated/ |
-| 4 Fine-tune | fairseq-hydra-train (see below) | build/data/finetune_lead1_duplicated/manifests/, pretrained .pt | Your checkpoint dir |
-| 5 Eval | `python eval/scripts/eval_ecgfm.py --base-dir . --model-path /path/to/checkpoint.pt` | build/data/test_lead1_duplicated/, labels/computed_labels/ | eval/data/ |
-
-Details: [SCRIPTS.md](SCRIPTS.md).
+- **Raw ECG:** [PhysioNet MIMIC-IV-ECG v1.0](https://physionet.org/content/mimic-iv-ecg/1.0/). Pass its root as `--raw-root` to the preprocess script.
+- **Pretrained model:** [HuggingFace wanglab/ecg-fm](https://huggingface.co/wanglab/ecg-fm) — **mimic_iv_ecg_physionet_pretrained.pt** for Lead I fine-tuning.
 
 ---
 
-## Fine-tuning with fairseq_signals
+## Pipeline
 
-Set paths and run from the **fairseq-signals** clone:
+| Step | Script | Reads | Writes |
+|------|--------|-------|--------|
+| 0 Labels | labels/scripts/create_labels_ecgfm.py | labels/raw_for_labeling/, ecg_fm_labeler_config/, ecg_fm_labeler/, optional split/data/meta_split.csv | labels/computed_labels/ |
+| 1 Split | split/scripts/create_split.py | split/data/record_list.csv | split/data/meta_split.csv |
+| 2 Preprocess | preprocess/scripts/preprocess_ecgfm.py | split/data/, raw WFDB (--raw-root) | preprocess/data/lead_1_duplicated/ |
+| 3 Build | build/scripts/build_test_and_finetune_data.py | labels/computed_labels/, split/data/, preprocess/data/ | build/data/test_lead1_duplicated/, finetune_lead1_duplicated/ |
+| 4 Fine-tune | fairseq-hydra-train (in fairseq-signals) | build/data/finetune_lead1_duplicated/manifests/, pretrained .pt | Checkpoint directory |
+| 5 Eval | eval/scripts/eval_ecgfm.py or eval_finetuned.py | build/data/test_lead1_duplicated/, labels/computed_labels/, --model-path | eval/data/ |
+
+Run scripts from the repository root with `--base-dir .` (or set `ECG_FINETUNE_BASE`).
+
+---
+
+## Fine-tuning (fairseq_signals)
+
+From a **fairseq-signals** clone, with paths set to this repo and your pretrained model:
 
 ```bash
 FAIRSEQ_SIGNALS_ROOT="/path/to/fairseq-signals"
@@ -135,11 +123,11 @@ fairseq-hydra-train \
 
 ```bash
 python eval/scripts/eval_ecgfm.py --base-dir . --model-path /path/to/checkpoint.pt
-# Or for finetuned checkpoints (PyTorch load patch):
+# Finetuned checkpoints (PyTorch load patch):
 python eval/scripts/eval_finetuned.py --base-dir . --model-path /path/to/checkpoint.pt
 ```
 
-Results under **eval/data/**.
+Results are written to **eval/data/**.
 
 ---
 
