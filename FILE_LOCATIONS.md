@@ -38,7 +38,7 @@ Reference for where inputs and outputs live. Data not in the repo (raw ECG, pret
 
 | What | Where |
 |------|--------|
-| Test / finetune sets | build/data/test_lead1_duplicated/, build/data/finetune_lead1_duplicated/ (written by build_test_and_finetune_data.py) |
+| Test / finetune sets | manifest/data/test_lead1_duplicated/, manifest/data/finetune_lead1_duplicated/ (written by build_test_and_finetune_data.py) |
 
 ---
 

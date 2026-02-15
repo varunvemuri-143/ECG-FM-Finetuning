@@ -3,7 +3,7 @@
 Evaluate a finetuned ECG-FM checkpoint on test set (Lead I duplicated only).
 
 Same as eval_ecgfm.py but patches torch.load for PyTorch >= 2.6 so fairseq-style checkpoints load.
-Reads: build/data/test_lead1_duplicated/, labels/computed_labels/. Writes: eval/data/.
+Reads: manifest/data/test_lead1_duplicated/, labels/computed_labels/. Writes: eval/data/.
 """
 
 from __future__ import annotations
@@ -43,14 +43,14 @@ def main() -> int:
     parser.add_argument("--max-samples", type=int, default=None)
     args = parser.parse_args()
     base = get_base_dir(args)
-    build_data_dir = base / "build" / "data"
+    manifest_data_dir = base / "manifest" / "data"
     labels_dir = base / "labels" / "computed_labels"
     results_dir = base / "eval" / "data"
     model_path = Path(args.model_path)
     if not model_path.exists():
         print(f"Model not found: {model_path}", file=sys.stderr)
         return 1
-    evaluate_variant("test_lead1_duplicated", build_data_dir, labels_dir, model_path, results_dir,
+    evaluate_variant("test_lead1_duplicated", manifest_data_dir, labels_dir, model_path, results_dir,
                     batch_size=args.batch_size, num_workers=args.num_workers, max_samples=args.max_samples)
     print("Done.")
     return 0

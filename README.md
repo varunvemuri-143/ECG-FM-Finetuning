@@ -1,6 +1,6 @@
 # ECG-FM Lead-I Fine-Tuning
 
-This repository contains a pipeline for **Lead I duplicated to 12 channels** data from MIMIC-IV-ECG and **ECG-FM fine-tuning** using the [fairseq_signals](https://github.com/Jwoo5/fairseq-signals) framework (Bowen Lab [ECG-FM](https://github.com/bowang-lab/ecg-fm)). Pipeline stages are top-level folders: **labels**, **split**, **preprocess**, **build**, **eval**.
+This repository contains a pipeline for **Lead I duplicated to 12 channels** data from MIMIC-IV-ECG and **ECG-FM fine-tuning** using the [fairseq_signals](https://github.com/Jwoo5/fairseq-signals) framework (Bowen Lab [ECG-FM](https://github.com/bowang-lab/ecg-fm)). Pipeline stages are top-level folders: **labels**, **split**, **preprocess**, **manifest**, **eval**.
 
 ---
 
@@ -27,7 +27,7 @@ git_ecg_finetuned/
 │   ├── data/                  # lead_1_duplicated/ (.mat output)
 │   └── scripts/
 │       └── preprocess_ecgfm.py
-├── build/
+├── manifest/
 │   ├── data/                  # test_lead1_duplicated/, finetune_lead1_duplicated/ (manifests in finetune_lead1_duplicated/manifests/)
 │   └── scripts/
 │       ├── README.md          # Manifest creation (build_test_and_finetune_data.py)
@@ -41,9 +41,9 @@ finetuned_model/               # Fine-tuned .pt checkpoints
 ```
 
 - **labels/** — Label inputs (label_inputs), ECG-FM labeler config and package, label-creation script, and computed labels output.
-- **split/** — Record list and split script; output meta_split.csv for preprocess and build.
+- **split/** — Record list and split script; output meta_split.csv for preprocess and manifest.
 - **preprocess/** — Script that produces 10 s .mat (Lead I → 12 ch) from WFDB; output in preprocess/data/lead_1_duplicated/.
-- **build/** — Script that builds test and finetune sets (manifests, y.npy) from labels and preprocessed data.
+- **manifest/** — Script that builds test and finetune sets and creates fairseq manifests (train/valid/test TSVs, y.npy, etc.) in manifest/data/.
 - **eval/** — Scripts to run ECG-FM inference and write predictions and metrics to eval/data/.
 - **finetuned_model/** — Directory for fine-tuned checkpoints; eval scripts take a path via `--model-path`.
 
@@ -73,9 +73,9 @@ finetuned_model/               # Fine-tuned .pt checkpoints
 | 0 Labels | labels/scripts/create_labels_ecgfm.py | labels/label_inputs/, ecg_fm_labeler_config/, ecg_fm_labeler/, optional split/data/meta_split.csv | labels/computed_labels/ |
 | 1 Split | split/scripts/create_split.py | split/data/record_list.csv | split/data/meta_split.csv |
 | 2 Preprocess | preprocess/scripts/preprocess_ecgfm.py | split/data/, raw WFDB (--raw-root) | preprocess/data/lead_1_duplicated/ |
-| 3 Build | build/scripts/build_test_and_finetune_data.py | labels/computed_labels/, split/data/, preprocess/data/ | build/data/test_lead1_duplicated/, finetune_lead1_duplicated/ |
-| 4 Fine-tune | fairseq-hydra-train (in fairseq-signals) | build/data/finetune_lead1_duplicated/manifests/, pretrained .pt | Checkpoint directory |
-| 5 Eval | eval/scripts/eval_ecgfm.py or eval_finetuned.py | build/data/test_lead1_duplicated/, labels/computed_labels/, --model-path | eval/data/ |
+| 3 Manifest | manifest/scripts/build_test_and_finetune_data.py | labels/computed_labels/, split/data/, preprocess/data/ | manifest/data/test_lead1_duplicated/, finetune_lead1_duplicated/ |
+| 4 Fine-tune | fairseq-hydra-train (in fairseq-signals) | manifest/data/finetune_lead1_duplicated/manifests/, pretrained .pt | Checkpoint directory |
+| 5 Eval | eval/scripts/eval_ecgfm.py or eval_finetuned.py | manifest/data/test_lead1_duplicated/, labels/computed_labels/, --model-path | eval/data/ |
 
 Run scripts from the repository root with `--base-dir .` (or set `ECG_FINETUNE_BASE`).
 
@@ -88,7 +88,7 @@ From a **fairseq-signals** clone, with paths set to this repo and your pretraine
 ```bash
 FAIRSEQ_SIGNALS_ROOT="/path/to/fairseq-signals"
 PRETRAINED_MODEL="/path/to/mimic_iv_ecg_physionet_pretrained.pt"
-MANIFEST_DIR="/path/to/git_ecg_finetuned/build/data/finetune_lead1_duplicated/manifests"
+MANIFEST_DIR="/path/to/git_ecg_finetuned/manifest/data/finetune_lead1_duplicated/manifests"
 LABEL_DIR="$MANIFEST_DIR"
 OUTPUT_DIR="/path/to/checkpoints_finetune_lead1"
 

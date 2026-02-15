@@ -2,10 +2,10 @@
 """
 Build test set and finetune set for Lead I duplicated only.
 Creates fairseq manifests (train/valid/test TSVs, y.npy, label_def.csv, pos_weight.txt)
-in build/data/finetune_lead1_duplicated/manifests/.
+in manifest/data/finetune_lead1_duplicated/manifests/.
 
 Reads: labels/computed_labels/, split/data/meta_split.csv, preprocess/data/lead_1_duplicated/.
-Writes: build/data/test_lead1_duplicated/, build/data/finetune_lead1_duplicated/ (including manifests/).
+Writes: manifest/data/test_lead1_duplicated/, manifest/data/finetune_lead1_duplicated/ (including manifests/).
 """
 
 from __future__ import annotations
@@ -181,7 +181,7 @@ def main() -> int:
     base = get_base_dir(args)
     split_data = base / "split" / "data"
     preprocess_data = base / "preprocess" / "data"
-    build_data = base / "build" / "data"
+    manifest_data = base / "manifest" / "data"
     labels_dir = base / "labels" / "computed_labels"
     meta_path = Path(args.meta) if args.meta else split_data / "meta_split.csv"
     preprocess_lead1_dir = preprocess_data / DIR_LEAD1
@@ -231,12 +231,12 @@ def main() -> int:
         def get_label_row(study_id: int):
             return labels_by_idx.loc[study_id].values.astype(np.float32)
 
-    build_data.mkdir(parents=True, exist_ok=True)
+    manifest_data.mkdir(parents=True, exist_ok=True)
     if not args.skip_step1:
-        run_step1_test_data(preprocess_lead1_dir, build_data, meta, get_label_row, valid_study_ids, label_cols, label_def_path)
+        run_step1_test_data(preprocess_lead1_dir, manifest_data, meta, get_label_row, valid_study_ids, label_cols, label_def_path)
     if not args.skip_step2:
         run_step2_finetune_data(
-            preprocess_lead1_dir, build_data, labels_dir, meta, get_label_row, valid_study_ids, label_cols, label_def_path
+            preprocess_lead1_dir, manifest_data, labels_dir, meta, get_label_row, valid_study_ids, label_cols, label_def_path
         )
     log("Done.")
     return 0

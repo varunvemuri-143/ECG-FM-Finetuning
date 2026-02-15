@@ -12,7 +12,7 @@ labels/computed_labels/y_soft.npy
 
 # Pipeline outputs (optional: ignore so repo stays small)
 # preprocess/data/lead_1_duplicated/
-# build/data/
+# manifest/data/
 # eval/data/
 
 # macOS

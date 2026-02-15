@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Evaluate ECG-FM on test set (Lead I duplicated only: build/data/test_lead1_duplicated).
+Evaluate ECG-FM on test set (Lead I duplicated only: manifest/data/test_lead1_duplicated).
 
-Reads: build/data/test_lead1_duplicated/, labels/computed_labels/. Writes: eval/data/.
+Reads: manifest/data/test_lead1_duplicated/, labels/computed_labels/. Writes: eval/data/.
 Requires: ecg_transform, fairseq_signals. Paths: --base-dir, --model-path.
 """
 
@@ -125,7 +125,7 @@ def evaluate_variant(
     if not mats_dir.exists():
         raise FileNotFoundError(f"{mats_dir} not found")
     if not file_list_path.exists():
-        raise FileNotFoundError(f"Run build script first")
+        raise FileNotFoundError(f"Run manifest script first")
     label_def_path = labels_dir / "label_def_recomputed.csv"
     if not label_def_path.exists():
         label_def_path = labels_dir / "label_def.csv"
@@ -208,14 +208,14 @@ def main() -> int:
     parser.add_argument("--max-samples", type=int, default=None)
     args = parser.parse_args()
     base = get_base_dir(args)
-    build_data_dir = base / "build" / "data"
+    manifest_data_dir = base / "manifest" / "data"
     labels_dir = base / "labels" / "computed_labels"
     results_dir = base / "eval" / "data"
     model_path = Path(args.model_path)
     if not model_path.exists():
         print(f"Model not found: {model_path}")
         return 1
-    evaluate_variant("test_lead1_duplicated", build_data_dir, labels_dir, model_path, results_dir,
+    evaluate_variant("test_lead1_duplicated", manifest_data_dir, labels_dir, model_path, results_dir,
                     batch_size=args.batch_size, num_workers=args.num_workers, max_samples=args.max_samples)
     print("Done.")
     return 0

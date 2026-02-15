@@ -10,7 +10,7 @@ Scripts use **`--base-dir`** (or env **`ECG_FINETUNE_BASE`**) as the repository 
 - **labels/ecg_fm_labeler_config/** — ECG-FM pattern labeler config (JSONs + label_def.csv).
 - **labels/ecg_fm_labeler/** — ECG-FM pattern labeler Python package.
 - **labels/scripts/create_labels_ecgfm.py** — Builds label files; reads label_inputs + config; writes to computed_labels.
-- **labels/computed_labels/** — Output: labels.csv, y.npy, label_def_recomputed.csv, pos_weight.txt, study_id_mapping.csv. Consumed by build.
+- **labels/computed_labels/** — Output: labels.csv, y.npy, label_def_recomputed.csv, pos_weight.txt, study_id_mapping.csv. Consumed by manifest step.
 
 ### create_labels_ecgfm.py
 
@@ -46,21 +46,21 @@ Scripts use **`--base-dir`** (or env **`ECG_FINETUNE_BASE`**) as the repository 
 
 ---
 
-## build/
+## manifest/
 
 ### build_test_and_finetune_data.py
 
-**Purpose:** Build test set and finetune set (5 s segments) and create fairseq manifests. Manifest creation: writes train.tsv, valid.tsv, test.tsv, y.npy, label_def.csv, pos_weight.txt, original_idx_order.npy to build/data/finetune_lead1_duplicated/manifests/.
+**Purpose:** Build test set and finetune set (5 s segments) and create fairseq manifests. Manifest creation: writes train.tsv, valid.tsv, test.tsv, y.npy, label_def.csv, pos_weight.txt, original_idx_order.npy to manifest/data/finetune_lead1_duplicated/manifests/.
 
 **Inputs:** labels/computed_labels/, split/data/meta_split.csv, preprocess/data/lead_1_duplicated/.
 
-**Outputs:** build/data/test_lead1_duplicated/ (test mats, file list, labels); build/data/finetune_lead1_duplicated/ (segmented_5s/, manifests/).
+**Outputs:** manifest/data/test_lead1_duplicated/ (test mats, file list, labels); manifest/data/finetune_lead1_duplicated/ (segmented_5s/, manifests/).
 
 ---
 
 ## Fine-tuning
 
-Done inside the fairseq-signals clone. task.data points to build/data/finetune_lead1_duplicated/manifests/. See README for fairseq-hydra-train command.
+Done inside the fairseq-signals clone. task.data points to manifest/data/finetune_lead1_duplicated/manifests/. See README for fairseq-hydra-train command.
 
 ---
 
@@ -70,7 +70,7 @@ Done inside the fairseq-signals clone. task.data points to build/data/finetune_l
 
 **Purpose:** Run ECG-FM inference on test set; compute per-label metrics.
 
-**Inputs:** build/data/test_lead1_duplicated/, labels/computed_labels/, --model-path (checkpoint .pt).
+**Inputs:** manifest/data/test_lead1_duplicated/, labels/computed_labels/, --model-path (checkpoint .pt).
 
 **Outputs:** eval/data/ (CSV predictions and metrics).
 
