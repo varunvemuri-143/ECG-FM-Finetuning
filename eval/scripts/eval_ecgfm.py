@@ -2,7 +2,7 @@
 """
 Evaluate ECG-FM on test set (Lead I duplicated only: build/data/test_lead1_duplicated).
 
-Reads: build/data/test_lead1_duplicated/, labels/labels/. Writes: eval/data/.
+Reads: build/data/test_lead1_duplicated/, labels/computed_labels/. Writes: eval/data/.
 Requires: ecg_transform, fairseq_signals. Paths: --base-dir, --model-path.
 """
 

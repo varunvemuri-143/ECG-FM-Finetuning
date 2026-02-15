@@ -50,11 +50,11 @@ Scripts use **`--base-dir`** (or env **`ECG_FINETUNE_BASE`**) as the repository 
 
 ### build_test_and_finetune_data.py
 
-**Purpose:** Build test set and finetune set (5 s segments, manifests, y.npy) for fairseq.
+**Purpose:** Build test set and finetune set (5 s segments) and create fairseq manifests. Manifest creation: writes train.tsv, valid.tsv, test.tsv, y.npy, label_def.csv, pos_weight.txt, original_idx_order.npy to build/data/finetune_lead1_duplicated/manifests/.
 
 **Inputs:** labels/computed_labels/, split/data/meta_split.csv, preprocess/data/lead_1_duplicated/.
 
-**Outputs:** build/data/test_lead1_duplicated/, build/data/finetune_lead1_duplicated/.
+**Outputs:** build/data/test_lead1_duplicated/ (test mats, file list, labels); build/data/finetune_lead1_duplicated/ (segmented_5s/, manifests/).
 
 ---
 

@@ -28,8 +28,9 @@ git_ecg_finetuned/
 │   └── scripts/
 │       └── preprocess_ecgfm.py
 ├── build/
-│   ├── data/                  # test_lead1_duplicated/, finetune_lead1_duplicated/
+│   ├── data/                  # test_lead1_duplicated/, finetune_lead1_duplicated/ (manifests in finetune_lead1_duplicated/manifests/)
 │   └── scripts/
+│       ├── README.md          # Manifest creation (build_test_and_finetune_data.py)
 │       └── build_test_and_finetune_data.py
 └── eval/
     ├── data/                  # Predictions and metrics output

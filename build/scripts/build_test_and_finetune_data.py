@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
 Build test set and finetune set for Lead I duplicated only.
+Creates fairseq manifests (train/valid/test TSVs, y.npy, label_def.csv, pos_weight.txt)
+in build/data/finetune_lead1_duplicated/manifests/.
 
-Reads: labels/labels/, split/data/meta_split.csv, preprocess/data/lead_1_duplicated/.
-Writes: build/data/test_lead1_duplicated/, build/data/finetune_lead1_duplicated/.
+Reads: labels/computed_labels/, split/data/meta_split.csv, preprocess/data/lead_1_duplicated/.
+Writes: build/data/test_lead1_duplicated/, build/data/finetune_lead1_duplicated/ (including manifests/).
 """
 
 from __future__ import annotations

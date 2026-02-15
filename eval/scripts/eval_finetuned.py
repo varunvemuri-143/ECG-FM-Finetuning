@@ -3,7 +3,7 @@
 Evaluate a finetuned ECG-FM checkpoint on test set (Lead I duplicated only).
 
 Same as eval_ecgfm.py but patches torch.load for PyTorch >= 2.6 so fairseq-style checkpoints load.
-Reads: build/data/test_lead1_duplicated/, labels/labels/. Writes: eval/data/.
+Reads: build/data/test_lead1_duplicated/, labels/computed_labels/. Writes: eval/data/.
 """
 
 from __future__ import annotations
