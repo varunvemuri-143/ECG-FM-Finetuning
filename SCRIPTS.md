@@ -26,11 +26,13 @@ Scripts use **`--base-dir`** (or env **`ECG_FINETUNE_BASE`**) as the repository 
 
 ### create_split.py
 
-**Purpose:** Create train/valid/test split; write meta CSV.
+**Purpose:** Create train/valid/test split; write meta CSV (random 80/10/10 with seed 42).
 
 **Inputs:** split/data/record_list.csv (columns: study_id, path).
 
 **Outputs:** split/data/meta_split.csv (columns: save_file, split).
+
+**Alternative:** The same split used on HiperGator is provided as **split/data/meta_split_mimic_iv_ecg.csv**. Use it by passing `--meta split/data/meta_split_mimic_iv_ecg.csv` to preprocess and manifest scripts, or copy it to meta_split.csv.
 
 ---
 

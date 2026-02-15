@@ -21,7 +21,8 @@ Reference for where inputs and outputs live. Data not in the repo (raw ECG, pret
 | What | Where |
 |------|--------|
 | Record list | split/data/record_list.csv (study_id, path) |
-| Meta split | split/data/meta_split.csv (save_file, split; written by create_split.py) |
+| Meta split | split/data/meta_split.csv (save_file, split; from create_split.py or copy of meta_split_mimic_iv_ecg.csv) |
+| HiperGator split | split/data/meta_split_mimic_iv_ecg.csv (same split used on HiperGator; use as --meta or copy to meta_split.csv) |
 
 ---
 

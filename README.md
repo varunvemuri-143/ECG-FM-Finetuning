@@ -41,7 +41,7 @@ finetuned_model/               # Fine-tuned .pt checkpoints
 ```
 
 - **labels/** — Label inputs (label_inputs), ECG-FM labeler config and package, label-creation script, and computed labels output.
-- **split/** — Record list and split script; output meta_split.csv for preprocess and manifest.
+- **split/** — Record list and split script; output meta_split.csv for preprocess and manifest. The same split used on HiperGator is provided as **meta_split_mimic_iv_ecg.csv** (use `--meta split/data/meta_split_mimic_iv_ecg.csv` or copy to meta_split.csv).
 - **preprocess/** — Script that produces 10 s .mat (Lead I → 12 ch) from WFDB; output in preprocess/data/lead_1_duplicated/.
 - **manifest/** — Script that builds test and finetune sets and creates fairseq manifests (train/valid/test TSVs, y.npy, etc.) in manifest/data/.
 - **eval/** — Scripts to run ECG-FM inference and write predictions and metrics to eval/data/.
