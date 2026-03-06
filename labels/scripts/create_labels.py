@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-create_labels_ecgfm.py — Label creator (ECG-FM pattern labeler).
+create_labels.py — Label creator (ECG-FM pattern labeler).
 
 Generates labels using the same logic as ECG-FM's labeler.ipynb:
   preprocess_texts → PatternLabelerConfig.from_json → PatternLabeler → labels_to_array.
@@ -110,7 +110,7 @@ def main() -> int:
     if base_dir is None and args.base_dir is not None:
         base_dir = args.base_dir
     if base_dir is None:
-        # This script lives at labels/scripts/create_labels_ecgfm.py
+        # This script lives at labels/scripts/create_labels.py
         base_dir = Path(__file__).resolve().parent.parent.parent
     base_dir = Path(base_dir)
 
@@ -124,7 +124,7 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 80)
-    print("ECG-FM label generation (create_labels_ecgfm)")
+    print("ECG-FM label generation (create_labels)")
     print("=" * 80)
     print(f"base_dir:              {base_dir}")
     print(f"machine_measurements:  {machine_meas_path}")

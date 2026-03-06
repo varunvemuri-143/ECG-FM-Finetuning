@@ -11,8 +11,8 @@ Reference for where inputs and outputs live. Data not in the repo (raw ECG, pret
 | Inputs for labeler | labels/label_inputs/ (e.g. machine_measurements.csv, MIMIC-IV-ECG: study_id, report_0..report_17) |
 | Labeler config | labels/ecg_fm_labeler_config/ (JSONs + label_def.csv; from ECG-FM) |
 | Labeler package | labels/ecg_fm_labeler/ (from ECG-FM) |
-| Label script | labels/scripts/create_labels_ecgfm.py |
-| Computed labels | labels/computed_labels/ (labels.csv, y.npy, label_def_recomputed.csv, pos_weight.txt, study_id_mapping.csv; written by create_labels_ecgfm.py) |
+| Label script | labels/scripts/create_labels.py |
+| Computed labels | labels/computed_labels/ (labels.csv, y.npy, label_def_recomputed.csv, pos_weight.txt, study_id_mapping.csv; written by create_labels.py) |
 
 ---
 
@@ -31,7 +31,7 @@ Reference for where inputs and outputs live. Data not in the repo (raw ECG, pret
 | What | Where |
 |------|--------|
 | Raw WFDB root | External; [MIMIC-IV-ECG v1.0](https://physionet.org/content/mimic-iv-ecg/1.0/); passed as --raw-root |
-| Preprocessed .mat | preprocess/data/lead_1_duplicated/ (written by preprocess_ecgfm.py) |
+| Preprocessed .mat | preprocess/data/lead_{lead}/mats_10s/ (written by preprocess.py; use --lead 1 or 2) |
 
 ---
 
@@ -39,7 +39,7 @@ Reference for where inputs and outputs live. Data not in the repo (raw ECG, pret
 
 | What | Where |
 |------|--------|
-| Test / finetune sets | manifest/data/test_lead1_duplicated/, manifest/data/finetune_lead1_duplicated/ (written by build_test_and_finetune_data.py) |
+| Test / finetune sets | manifest/data/lead_1/, manifest/data/lead_2/ (segmented_5s and manifests written by build_test_and_finetune_data.py) |
 
 ---
 
@@ -56,4 +56,4 @@ Reference for where inputs and outputs live. Data not in the repo (raw ECG, pret
 
 | What | Where |
 |------|--------|
-| Predictions / metrics | eval/data/ (written by eval_ecgfm.py or eval_finetuned.py) |
+| Predictions / metrics | eval/data/ (written by evaluate.py) |

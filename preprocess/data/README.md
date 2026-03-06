@@ -1,3 +1,3 @@
 # Preprocess output
 
-Output of the preprocess script: **lead_1_duplicated/** — one 10 s .mat per record (Lead I duplicated to 12 channels, 500 Hz, standardized).
+Output of **preprocess/scripts/preprocess.py** (run with `--lead 1` or `--lead 2`). **lead_{lead}/mats_10s/** — one 10 s .mat per record (selected lead duplicated to 12 channels, 500 Hz, standardized).

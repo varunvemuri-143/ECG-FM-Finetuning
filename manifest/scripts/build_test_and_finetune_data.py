@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
-Build test set and finetune set for Lead I duplicated only.
-Creates fairseq manifests (train/valid/test TSVs, y.npy, label_def.csv, pos_weight.txt)
-in manifest/data/finetune_lead1_duplicated/manifests/.
+Build ECG-FM manifests and 5s segments for single-lead data.
 
-Reads: labels/computed_labels/, split/data/meta_split.csv, preprocess/data/lead_1_duplicated/.
-Writes: manifest/data/test_lead1_duplicated/, manifest/data/finetune_lead1_duplicated/ (including manifests/).
+Reads 10s preprocessed `.mat` files from `preprocess/data/lead_{lead}/mats_10s/`,
+segments them into 5s non-overlapping chunks, and builds the Fairseq manifestations
+(train.tsv, valid.tsv, test.tsv, y.npy, label_def.csv, pos_weight.txt) in
+`manifest/data/lead_{lead}/manifests/`.
+
+Usage:
+    python build_test_and_finetune_data.py --lead 1
+    python build_test_and_finetune_data.py --lead 2
 """
 
 from __future__ import annotations
@@ -20,72 +24,72 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 from scipy.io import loadmat, savemat
+from scipy.io.matlab import MatReadError
 from tqdm import tqdm
 
 SEGMENT_SAMPLES = 2500
-DIR_LEAD1 = "lead_1_duplicated"
+LEAD_NAMES = {1: "I", 2: "II"}
 
 
 def get_base_dir(args: argparse.Namespace) -> Path:
-    return Path(args.base_dir or os.environ.get("ECG_FINETUNE_BASE", os.getcwd()))
+    """Return base directory (from argument or $ECG_FINETUNE_BASE or cwd)."""
+    if args.base_dir:
+        return Path(args.base_dir)
+    return Path(os.environ.get("ECG_FINETUNE_BASE", os.getcwd()))
 
 
 def log(msg: str) -> None:
     print(msg, flush=True)
 
 
-def run_step1_test_data(
-    preprocess_lead1_dir: Path,
-    build_data_dir: Path,
-    meta: pd.DataFrame,
-    get_label_row: Callable[[int], np.ndarray],
-    valid_study_ids: set,
-    label_cols: list,
-    label_def_path: Path,
-) -> None:
-    out_parent = build_data_dir / "test_lead1_duplicated"
-    mats_dir = out_parent / "mats"
-    mats_dir.mkdir(parents=True, exist_ok=True)
+def build_label_accessor(labels_final: Path) -> tuple[Callable[[int], np.ndarray], set[int], list[str], Path]:
+    """
+    Returns a fast accessor function for study_id -> label row,
+    along with the set of valid study IDs, column names, and def path.
+    """
+    labels_csv = labels_final / "labels.csv"
+    if not labels_csv.exists():
+        raise FileNotFoundError(f"{labels_csv} not found")
 
-    test_df = meta[meta["split"] == "test"].copy()
-    test_df["study_id"] = test_df["save_file"].str.replace(".mat", "", regex=False).str.split("_").str[-1].astype(int)
-    test_save_files = test_df["save_file"].unique().tolist()
+    label_def_path = labels_final / "label_def_recomputed.csv"
+    if not label_def_path.exists():
+        label_def_path = labels_final / "label_def.csv"
+    if not label_def_path.exists():
+        raise FileNotFoundError(f"{label_def_path} not found")
 
-    for sf in test_save_files:
-        src = preprocess_lead1_dir / sf
-        if not src.exists():
-            continue
-        dest = mats_dir / sf
-        if not dest.exists():
-            try:
-                dest.symlink_to(os.path.relpath(str(src.resolve()), str(mats_dir.resolve())))
-            except OSError:
-                shutil.copy2(str(src), str(dest))
+    label_cols = pd.read_csv(label_def_path)["name"].tolist()
+    labels_df = pd.read_csv(labels_csv)
+    if not all(c in labels_df.columns for c in label_cols):
+        raise ValueError(f"{labels_csv} missing columns from label_def")
 
-    test_list = []
-    for _, row in test_df.iterrows():
-        if (mats_dir / row["save_file"]).exists():
-            test_list.append({"idx": len(test_list), "study_id": row["study_id"], "save_file": row["save_file"]})
-    if test_list:
-        pd.DataFrame(test_list).to_csv(out_parent / "test_file_list.csv", index=False)
+    labels_by_idx = labels_df.set_index("idx")[label_cols]
+    mapping_path = labels_final / "study_id_mapping.csv"
 
-    sid_set = set(test_df["study_id"].astype(int)) & valid_study_ids
-    rows = []
-    for s in sorted(sid_set):
-        try:
-            row_vals = get_label_row(s)
-            rows.append({"idx": s, **dict(zip(label_cols, row_vals))})
-        except (KeyError, IndexError):
-            pass
-    if rows:
-        pd.DataFrame(rows).to_csv(out_parent / "test_labels.csv", index=False)
-    if label_def_path.exists():
-        shutil.copy2(str(label_def_path), str(out_parent / "label_def.csv"))
-    test_df[["study_id", "save_file"]].drop_duplicates().to_csv(out_parent / "study_id_mapping.csv", index=False)
-    log(f"Step 1: test_lead1_duplicated -> {out_parent} (mats={len(list(mats_dir.glob('*.mat')))})")
+    if mapping_path.exists():
+        mapping = pd.read_csv(mapping_path)
+        study_id_to_idx = mapping.set_index("study_id")["idx"].to_dict()
+        valid_ids = set(int(s) for s in study_id_to_idx.keys())
+
+        def get_row(study_id: int) -> np.ndarray:
+            idx = study_id_to_idx[study_id]
+            return labels_by_idx.loc[idx].values.astype(np.float32)
+    else:
+        valid_ids = set(labels_df["idx"].astype(int))
+
+        def get_row(study_id: int) -> np.ndarray:
+            return labels_by_idx.loc[study_id].values.astype(np.float32)
+
+    return get_row, valid_ids, label_cols, label_def_path
 
 
-def segment_10s_to_5s(src_mat: Path, out_dir: Path, base_name: str, study_id: int) -> list:
+def expected_5s_paths(out_dir: Path, base_name: str) -> list[Path]:
+    """Expected 5s segment paths for one 10s file (always 2 segments)."""
+    return [out_dir / f"{base_name}_0.mat", out_dir / f"{base_name}_1.mat"]
+
+
+def segment_10s_to_5s(
+    src_mat: Path, out_dir: Path, base_name: str, study_id: int,
+) -> list[Path]:
     data = loadmat(str(src_mat), variable_names=["feats", "curr_sample_rate"])
     feats = data["feats"]
     rate = int(np.squeeze(data["curr_sample_rate"]))
@@ -94,7 +98,9 @@ def segment_10s_to_5s(src_mat: Path, out_dir: Path, base_name: str, study_id: in
     n_seg = feats.shape[-1] // SEGMENT_SAMPLES
     out_paths = []
     for seg_i in range(n_seg):
-        seg_feats = feats[:, seg_i * SEGMENT_SAMPLES : (seg_i + 1) * SEGMENT_SAMPLES].copy()
+        seg_feats = feats[
+            :, seg_i * SEGMENT_SAMPLES : (seg_i + 1) * SEGMENT_SAMPLES
+        ].copy()
         seg_data = {
             "feats": seg_feats,
             "curr_sample_rate": np.array([[500]], dtype=np.float64),
@@ -107,138 +113,173 @@ def segment_10s_to_5s(src_mat: Path, out_dir: Path, base_name: str, study_id: in
     return out_paths
 
 
-def run_step2_finetune_data(
-    preprocess_lead1_dir: Path,
-    build_data_dir: Path,
-    labels_dir: Path,
-    meta: pd.DataFrame,
-    get_label_row: Callable[[int], np.ndarray],
-    valid_study_ids: set,
-    label_cols: list,
-    label_def_path: Path,
-) -> None:
-    out_root = build_data_dir / "finetune_lead1_duplicated"
-    segmented_dir = out_root / "segmented_5s"
-    manifests_dir = out_root / "manifests"
-    segmented_dir.mkdir(parents=True, exist_ok=True)
-    manifests_dir.mkdir(parents=True, exist_ok=True)
-    n_labels = len(label_cols)
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Build ECG-FM manifests and 5s segments for single-lead data.",
+    )
+    parser.add_argument("--lead", type=int, required=True, choices=[1, 2], help="Lead processed (1 for Lead I, 2 for Lead II)")
+    parser.add_argument("--base-dir", type=str, default=None)
+    parser.add_argument("--meta", type=str, default=None)
+    args = parser.parse_args()
 
-    meta = meta.copy()
+    # Paths
+    lead_name = LEAD_NAMES[args.lead]
+    base = get_base_dir(args)
+    split_data = base / "split" / "data"
+    labels_final = base / "labels" / "computed_labels"
+    mats_10s = base / "preprocess" / "data" / f"lead_{args.lead}" / "mats_10s"
+
+    lead_dir = base / "manifest" / "data" / f"lead_{args.lead}"
+    seg_dir = lead_dir / "segmented_5s"
+    man_dir = lead_dir / "manifests"
+
+    meta_path = Path(args.meta) if args.meta else split_data / "meta_split.csv"
+
+    seg_dir.mkdir(parents=True, exist_ok=True)
+    man_dir.mkdir(parents=True, exist_ok=True)
+
+    log("=" * 70)
+    log(f"Manifest: Build splits and manifests (Lead {args.lead} = {lead_name})")
+    log("=" * 70)
+    log(f"Base:          {base}")
+    log(f"Meta split:    {meta_path}")
+    log(f"Labels final:  {labels_final}")
+    log(f"mats_10s:      {mats_10s}")
+    log(f"Output:        {lead_dir}")
+    log("=" * 70)
+
+    if not meta_path.exists():
+        log(f"ERROR: meta split not found: {meta_path}")
+        return 1
+    if not labels_final.exists():
+        log(f"ERROR: labels_final not found: {labels_final}")
+        return 1
+    if not mats_10s.exists():
+        log(f"ERROR: mats_10s not found: {mats_10s}")
+        log("Run preprocess script first.")
+        return 1
+
+    meta = pd.read_csv(meta_path, low_memory=False)
     meta["base_name"] = meta["save_file"].str.replace(".mat", "", regex=False)
     meta["study_id"] = meta["base_name"].str.split("_").str[-1].astype(int)
 
-    all_entries = []
+    get_label_row, valid_ids, label_cols, label_def_path = build_label_accessor(labels_final)
+    n_labels = len(label_cols)
+    log(f"Labels: {n_labels} columns, {len(valid_ids)} study_ids with labels")
+
+    available_mats = set(f.name for f in mats_10s.glob("*.mat"))
+    meta_available = meta[meta["save_file"].isin(available_mats)].copy()
+    log(f"Meta rows: {len(meta)}, available .mat files: {len(available_mats)}\n")
+
+    all_entries: list[tuple[str, str, int]] = []
+    skipped_bad_mat: list[str] = []
+    n_skipped_existing = 0
+
     for split in ["train", "valid", "test"]:
-        split_meta = meta[meta["split"] == split]
-        for _, row in tqdm(split_meta.iterrows(), total=len(split_meta), desc=f"finetune_lead1 {split}", leave=False):
-            src = preprocess_lead1_dir / row["save_file"]
-            if not src.exists():
-                continue
+        split_meta = meta_available[meta_available["split"] == split]
+        for _, row in tqdm(
+            split_meta.iterrows(), total=len(split_meta),
+            desc=f"Lead {args.lead} {split}",
+        ):
             study_id = int(row["study_id"])
-            if study_id not in valid_study_ids:
+            if study_id not in valid_ids:
                 continue
-            out_paths = segment_10s_to_5s(src, segmented_dir, row["base_name"], study_id)
+            base_name = row["base_name"]
+            expected = expected_5s_paths(seg_dir, base_name)
+            
+            if all(p.exists() for p in expected):
+                n_skipped_existing += 1
+                for p in expected:
+                    all_entries.append((split, str(p.relative_to(seg_dir)), study_id))
+                continue
+            
+            src = mats_10s / row["save_file"]
+            try:
+                out_paths = segment_10s_to_5s(src, seg_dir, base_name, study_id)
+            except (MatReadError, OSError, ValueError) as e:
+                skipped_bad_mat.append(f"{row['save_file']}: {e}")
+                continue
+                
             for p in out_paths:
-                all_entries.append((split, str(p.relative_to(segmented_dir)), study_id))
+                all_entries.append((split, str(p.relative_to(seg_dir)), study_id))
+
+    if n_skipped_existing:
+        log(f"\nSkipped re-segmenting {n_skipped_existing} 10s files (5s segments already present).")
+
+    if skipped_bad_mat:
+        log(f"\nSkipped {len(skipped_bad_mat)} bad/truncated .mat files.")
+        skip_log = lead_dir / "skipped_bad_mat.txt"
+        with open(skip_log, "w") as f:
+            f.write("\n".join(skipped_bad_mat))
 
     N = len(all_entries)
+    log(f"\nTotal 5s segments: {N}")
+
     y = np.zeros((N, n_labels), dtype=np.float32)
     for i, (_, _, study_id) in enumerate(all_entries):
         y[i] = get_label_row(study_id)
-    np.save(manifests_dir / "y.npy", y)
+    np.save(man_dir / "y.npy", y)
 
-    for i, (_, rel_path, _) in enumerate(tqdm(all_entries, desc="write idx", leave=False)):
-        mat_path = segmented_dir / rel_path
+    for i, (_, rel_path, _) in enumerate(tqdm(all_entries, desc="Write manifest idx into .mat")):
+        mat_path = seg_dir / rel_path
         d = loadmat(str(mat_path))
         d["idx"] = np.array([[i]], dtype=np.int64)
         savemat(str(mat_path), d, format="5", do_compression=False)
 
-    root = str(segmented_dir.resolve())
+    root_line = str(seg_dir.resolve())
     for split in ["train", "valid", "test"]:
         entries = [rel for s, rel, _ in all_entries if s == split]
-        with open(manifests_dir / f"{split}.tsv", "w") as f:
-            f.write(root + "\n")
+        with open(man_dir / f"{split}.tsv", "w") as f:
+            f.write(root_line + "\n")
             for rel in entries:
                 f.write(rel + "\t2500\n")
-    np.save(manifests_dir / "original_idx_order.npy", np.array([e[2] for e in all_entries], dtype=np.int64))
+
+    original_idx_order = np.array([e[2] for e in all_entries], dtype=np.int64)
+    np.save(man_dir / "original_idx_order.npy", original_idx_order)
+
     if label_def_path.exists():
-        shutil.copy2(str(label_def_path), str(manifests_dir / "label_def.csv"))
-    pos_weight_src = labels_dir / "pos_weight.txt"
-    if pos_weight_src.exists():
-        shutil.copy2(str(pos_weight_src), str(manifests_dir / "pos_weight.txt"))
-    log(f"Step 2: finetune_lead1_duplicated -> {out_root} (segments={N})")
+        shutil.copy2(str(label_def_path), str(man_dir / "label_def.csv"))
+    pw_src = labels_final / "pos_weight.txt"
+    if pw_src.exists():
+        shutil.copy2(str(pw_src), str(man_dir / "pos_weight.txt"))
 
+    test_sids = sorted(set(sid for s, _, sid in all_entries if s == "test"))
+    test_labels = []
+    for sid in test_sids:
+        try:
+            vals = get_label_row(sid)
+            test_labels.append({"idx": sid, **dict(zip(label_cols, vals))})
+        except (KeyError, IndexError):
+            pass
+    if test_labels:
+        pd.DataFrame(test_labels).to_csv(lead_dir / "test_labels.csv", index=False)
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Build test + finetune data (Lead I duplicated only).")
-    parser.add_argument("--base-dir", type=str, default=None)
-    parser.add_argument("--meta", type=str, default=None)
-    parser.add_argument("--skip-step1", action="store_true")
-    parser.add_argument("--skip-step2", action="store_true")
-    args = parser.parse_args()
+    test_meta = meta_available[meta_available["split"] == "test"]
+    test_file_list = []
+    for _, row in test_meta.iterrows():
+        if int(row["study_id"]) in valid_ids:
+            test_file_list.append({
+                "idx": len(test_file_list),
+                "study_id": int(row["study_id"]),
+                "save_file": row["save_file"],
+            })
+    if test_file_list:
+        pd.DataFrame(test_file_list).to_csv(lead_dir / "test_file_list.csv", index=False)
 
-    base = get_base_dir(args)
-    split_data = base / "split" / "data"
-    preprocess_data = base / "preprocess" / "data"
-    manifest_data = base / "manifest" / "data"
-    labels_dir = base / "labels" / "computed_labels"
-    meta_path = Path(args.meta) if args.meta else split_data / "meta_split.csv"
-    preprocess_lead1_dir = preprocess_data / DIR_LEAD1
+    sid_mapping = (
+        meta_available[["study_id", "save_file"]]
+        .drop_duplicates()
+        .sort_values("study_id")
+    )
+    sid_mapping.to_csv(lead_dir / "study_id_mapping.csv", index=False)
 
-    if not meta_path.exists():
-        log(f"ERROR: meta not found: {meta_path}")
-        return 1
-    if not labels_dir.exists():
-        log(f"ERROR: labels dir not found: {labels_dir}")
-        return 1
-    if not preprocess_lead1_dir.exists():
-        log(f"ERROR: preprocess output not found: {preprocess_lead1_dir}. Run preprocess script first.")
-        return 1
-
-    labels_csv = labels_dir / "labels.csv"
-    if not labels_csv.exists():
-        log(f"ERROR: {labels_csv} not found")
-        return 1
-    label_def_path = labels_dir / "label_def_recomputed.csv"
-    if not label_def_path.exists():
-        label_def_path = labels_dir / "label_def.csv"
-    if not label_def_path.exists():
-        log("ERROR: label_def_recomputed.csv or label_def.csv required in labels/computed_labels/")
-        return 1
-
-    meta = pd.read_csv(meta_path, low_memory=False)
-    if "split" not in meta.columns or "save_file" not in meta.columns:
-        log("ERROR: meta must have columns split, save_file")
-        return 1
-    label_cols = pd.read_csv(label_def_path)["name"].tolist()
-    labels_df = pd.read_csv(labels_csv)
-    if not all(c in labels_df.columns for c in label_cols):
-        log("ERROR: labels.csv missing label_def columns")
-        return 1
-    labels_by_idx = labels_df.set_index("idx")[label_cols]
-    mapping_path = labels_dir / "study_id_mapping.csv"
-    if mapping_path.exists():
-        mapping = pd.read_csv(mapping_path)
-        study_id_to_idx = mapping.set_index("study_id")["idx"].to_dict()
-        valid_study_ids = set(int(s) for s in study_id_to_idx.keys())
-
-        def get_label_row(study_id: int):
-            return labels_by_idx.loc[study_id_to_idx[study_id]].values.astype(np.float32)
-    else:
-        valid_study_ids = set(labels_df["idx"].astype(int))
-
-        def get_label_row(study_id: int):
-            return labels_by_idx.loc[study_id].values.astype(np.float32)
-
-    manifest_data.mkdir(parents=True, exist_ok=True)
-    if not args.skip_step1:
-        run_step1_test_data(preprocess_lead1_dir, manifest_data, meta, get_label_row, valid_study_ids, label_cols, label_def_path)
-    if not args.skip_step2:
-        run_step2_finetune_data(
-            preprocess_lead1_dir, manifest_data, labels_dir, meta, get_label_row, valid_study_ids, label_cols, label_def_path
-        )
-    log("Done.")
+    log("\n--- Split Summary ---")
+    for split in ["train", "valid", "test"]:
+        seg_count = sum(1 for s, _, _ in all_entries if s == split)
+        study_count = len(set(sid for s, _, sid in all_entries if s == split))
+        log(f"  {split:5s}: {seg_count:>8d} segments, {study_count:>7d} studies")
+    
+    log(f"\nOutput complete: {lead_dir}")
     return 0
 
 

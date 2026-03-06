@@ -9,10 +9,10 @@ Scripts use **`--base-dir`** (or env **`ECG_FINETUNE_BASE`**) as the repository 
 - **labels/label_inputs/** — Inputs for the label script (e.g. machine_measurements.csv, MIMIC-IV-ECG format).
 - **labels/ecg_fm_labeler_config/** — ECG-FM pattern labeler config (JSONs + label_def.csv).
 - **labels/ecg_fm_labeler/** — ECG-FM pattern labeler Python package.
-- **labels/scripts/create_labels_ecgfm.py** — Builds label files; reads label_inputs + config; writes to computed_labels.
+- **labels/scripts/create_labels.py** — Builds label files; reads label_inputs + config; writes to computed_labels.
 - **labels/computed_labels/** — Output: labels.csv, y.npy, label_def_recomputed.csv, pos_weight.txt, study_id_mapping.csv. Consumed by manifest step.
 
-### create_labels_ecgfm.py
+### create_labels.py
 
 **Purpose:** Build label files using the ECG-FM pattern labeler. Reads machine_measurements, builds text from report_0..report_17, runs the labeler; writes 17 diagnostic labels and arrays.
 
@@ -38,13 +38,13 @@ Scripts use **`--base-dir`** (or env **`ECG_FINETUNE_BASE`**) as the repository 
 
 ## preprocess/
 
-### preprocess_ecgfm.py
+### preprocess.py
 
-**Purpose:** WFDB → 10 s .mat (Lead I duplicated to 12 ch, 500 Hz). Requires MIMIC-IV-ECG root via --raw-root.
+**Purpose:** WFDB → 10 s .mat (Lead I or II duplicated to 12 ch, 500 Hz). Requires MIMIC-IV-ECG root via --raw-root.
 
-**Inputs:** split/data/meta_split.csv, split/data/record_list.csv, --raw-root.
+**Inputs:** split/data/meta_split.csv, split/data/record_list.csv, --raw-root. Used with `--lead 1` or `--lead 2`.
 
-**Outputs:** preprocess/data/lead_1_duplicated/ (one .mat per record).
+**Outputs:** preprocess/data/lead_{lead}/ (one .mat per record in mats_10s/).
 
 ---
 
@@ -52,32 +52,26 @@ Scripts use **`--base-dir`** (or env **`ECG_FINETUNE_BASE`**) as the repository 
 
 ### build_test_and_finetune_data.py
 
-**Purpose:** Build test set and finetune set (5 s segments) and create fairseq manifests. Manifest creation: writes train.tsv, valid.tsv, test.tsv, y.npy, label_def.csv, pos_weight.txt, original_idx_order.npy to manifest/data/finetune_lead1_duplicated/manifests/.
+**Purpose:** Build testing datasets and finetuning datasets (5 s segments) and create fairseq manifests based on specified `--lead`. Writes train.tsv, valid.tsv, test.tsv, y.npy, label_def.csv, pos_weight.txt, original_idx_order.npy to manifest/data/lead_{lead}/manifests/.
 
-**Inputs:** labels/computed_labels/, split/data/meta_split.csv, preprocess/data/lead_1_duplicated/.
+**Inputs:** labels/computed_labels/, split/data/meta_split.csv, preprocess/data/lead_{lead}/. Used with `--lead 1` or `--lead 2`.
 
-**Outputs:** manifest/data/test_lead1_duplicated/ (test mats, file list, labels); manifest/data/finetune_lead1_duplicated/ (segmented_5s/, manifests/).
+**Outputs:** manifest/data/lead_{lead}/ (test labels, file lists, segmented_5s/, manifests/).
 
 ---
 
 ## Fine-tuning
 
-Done inside the fairseq-signals clone. task.data points to manifest/data/finetune_lead1_duplicated/manifests/. See README for fairseq-hydra-train command.
+Done inside the fairseq-signals clone. task.data points to manifest/data/lead_{lead}/manifests/. See README for fairseq-hydra-train command.
 
 ---
 
 ## eval/
 
-### eval_ecgfm.py
+### evaluate.py
 
-**Purpose:** Run ECG-FM inference on test set; compute per-label metrics.
+**Purpose:** Run ECG-FM inference on test set and compute per-label metrics; generic for testing `--lead 1`, `--lead 2`, or `--both`. Internally patches `torch.load` for safe evaluation.
 
-**Inputs:** manifest/data/test_lead1_duplicated/, labels/computed_labels/, --model-path (checkpoint .pt).
+**Inputs:** manifest/data/lead_{lead}/, labels/computed_labels/, --model-path (checkpoint .pt).
 
 **Outputs:** eval/data/ (CSV predictions and metrics).
-
-### eval_finetuned.py
-
-**Purpose:** Same as eval_ecgfm.py with a torch.load patch for finetuned checkpoints (PyTorch ≥ 2.6).
-
-**Inputs / Outputs:** Same as eval_ecgfm.py.
