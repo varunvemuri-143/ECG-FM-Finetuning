@@ -13,9 +13,6 @@ replacements = {
 
 files = [
     "README.md",
-    "SUMMARY.md",
-    "SCRIPTS.md",
-    "FILE_LOCATIONS.md",
     "labels/scripts/README.md",
     "labels/ecg_fm_labeler_config/README.md",
     "labels/ecg_fm_labeler/README.md"

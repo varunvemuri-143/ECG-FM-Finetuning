@@ -143,9 +143,6 @@ python eval/scripts/evaluate.py --base-dir . --both
 ```
 git_ecg_finetuned/
 ├── README.md
-├── SUMMARY.md          # Pipeline summary and final files/outputs
-├── SCRIPTS.md
-├── FILE_LOCATIONS.md
 ├── requirements.txt
 ├── labels/
 │   ├── label_inputs/          # Inputs for the label script (e.g. machine_measurements.csv)
@@ -180,8 +177,6 @@ finetuned_model/               # Fine-tuned .pt checkpoints
 - **manifest/** — Script that builds test and finetune sets and creates fairseq manifests (train/valid/test TSVs, y.npy, etc.) in manifest/data/lead_{lead}/.
 - **eval/** — Scripts to run ECG-FM inference and write predictions and metrics to eval/data/.
 - **finetuned_model/** — Directory for fine-tuned checkpoints; eval scripts take a path via `--model-path`.
-
-[SCRIPTS.md](SCRIPTS.md) lists each script’s inputs and outputs. [FILE_LOCATIONS.md](FILE_LOCATIONS.md) summarizes file roles. See [SUMMARY.md](SUMMARY.md) for a concise list of **final files and outputs** by stage.
 
 ---
 
