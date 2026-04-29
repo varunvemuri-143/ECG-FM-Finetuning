@@ -272,6 +272,75 @@ Results are written to **eval/data/** (per-lead metrics and prediction CSVs).
 
 ---
 
+## Exact result locations (Lead 1 / Lead 2)
+
+These are the exact exported evaluation artifacts currently in this repo (from your HiPerGator/eval workflow sync):
+
+- `eval/results/eval_lead1_metrics_20260306_081002.csv`
+- `eval/results/eval_lead1_predictions_20260306_081002.csv`
+- `eval/results/eval_lead2_metrics_20260306_082103.csv`
+- `eval/results/eval_lead2_predictions_20260306_082103.csv`
+- `eval/results/README.md` (summary table with micro/per-class metrics)
+
+The metrics CSVs include:
+
+- AUROC
+- AUPRC
+- Accuracy
+- Recall
+- Precision
+- F1
+- Specificity
+- NPV
+- `n_pos`, `n_neg` per label
+
+---
+
+## Script paths used for ECG fine-tuning pipeline
+
+Use these as primary technical-documentation sources for the disease-classification part:
+
+- Labels:
+  - `labels/scripts/create_labels.py`
+  - `labels/ecg_fm_labeler/`
+  - `labels/ecg_fm_labeler_config/`
+  - `labels/computed_labels/`
+- Split:
+  - `split/scripts/create_split.py`
+  - `split/data/meta_split_mimic_iv_ecg.csv`
+  - `split/data/record_list.csv`
+- Preprocess:
+  - `preprocess/scripts/preprocess.py`
+  - `preprocess/data/`
+- Manifest build:
+  - `manifest/scripts/build_test_and_finetune_data.py`
+  - `manifest/data/`
+- Fine-tune and model checkpoints:
+  - `finetuned_model/`
+  - `README.md` (Fine-tuning block)
+- Evaluation:
+  - `eval/scripts/evaluate.py`
+  - `eval/results/`
+  - `eval/data/`
+
+---
+
+## Additional source paths for fiducial part (project-wide)
+
+For fiducial technical documentation, use these paths from the parent project:
+
+- `../fiducial/`
+- `../fiducial/model_release 2/README_FIDUCIAL.md`
+- `../fiducial/model_release 2/results/`
+- `../Final_test/hipergator_fiducial/prepare_ludb_data.py`
+- `../Final_test/hipergator_fiducial/train_fiducial.py`
+- `../Final_test/hipergator_fiducial/test_fiducial.py`
+- `../Final_test/website/src/fiducial/`
+
+If you want all fiducial docs kept inside this repo too, copy/sync those references into a dedicated `fiducial_docs/` folder.
+
+---
+
 ## References
 
 - [Bowen Lab ECG-FM](https://github.com/bowang-lab/ecg-fm), [HuggingFace wanglab/ecg-fm](https://huggingface.co/wanglab/ecg-fm), [Paper arXiv:2408.05178](https://arxiv.org/abs/2408.05178)
