@@ -110,7 +110,12 @@ python manifest/scripts/build_test_and_finetune_data.py --base-dir . --lead 1 --
 
 Run **inside your fairseq-signals clone**, once per lead. Set paths to this repo and your pretrained .pt. The same command works for Lead 1 or Lead 2; only `MANIFEST_DIR` and `OUTPUT_DIR` change (e.g. `lead_1` vs `lead_2`).
 
-See the full **[Fine-tuning (fairseq_signals)](#fine-tuning-fairseq_signals)** block below for the exact `fairseq-hydra-train` command (matches the HiPerGator run: best by validation loss, lr=1e-6, batch 256).
+Canonical HiPerGator job script used in this project:
+
+- `../code_lead_1_2/run_finetune_lead1.sh`
+- `../code_lead_1_2/run_finetune_lead2.sh`
+
+This README’s fine-tuning args are kept aligned with those scripts (best by validation AUROC, lr=5e-5, batch 128, valid subsets `valid,test`).
 
 **Needs:** `manifest/data/lead_{lead}/manifests/` from Step 3, and the pretrained model .pt.
 
@@ -212,7 +217,14 @@ Run scripts from the repository root with `--base-dir .` (or set `ECG_FINETUNE_B
 
 ## Fine-tuning (fairseq_signals)
 
-From a **fairseq-signals** clone. Set paths for the lead you want (e.g. `lead_1` or `lead_2`); the same command works for either by changing `MANIFEST_DIR` and `OUTPUT_DIR`. Args below match the HiPerGator run: best checkpoint by **validation loss**, lr=1e-6, batch 256, valid only.
+From a **fairseq-signals** clone. Set paths for the lead you want (e.g. `lead_1` or `lead_2`); the same command works for either by changing `MANIFEST_DIR` and `OUTPUT_DIR`.
+
+Args below match `../code_lead_1_2/run_finetune_lead1.sh`:
+
+- best checkpoint by **validation AUROC**
+- `lr=5e-5`
+- `batch_size=128`
+- valid subsets: `valid,test`
 
 ```bash
 FAIRSEQ_SIGNALS_ROOT="/path/to/fairseq-signals"
@@ -233,24 +245,21 @@ fairseq-hydra-train \
   task.normalize=false task.enable_padding=true task.enable_padding_leads=false \
   model.model_path="$PRETRAINED_MODEL" model.num_labels=$NUM_LABELS model.no_pretrained_weights=false \
   model.dropout=0.0 model.attention_dropout=0.0 model.activation_dropout=0.1 \
-  model.feature_grad_mult=0 model.freeze_finetune_updates=0 model.in_d=12 model.saliency=false \
+  model.feature_grad_mult=0.0 model.freeze_finetune_updates=0 model.in_d=12 model.saliency=false \
   +criterion.pos_weight="$POS_WEIGHT" criterion.report_auc=true criterion.report_cinc_score=false \
-  optimization.max_epoch=100 optimization.max_update=320000 optimization.lr=[1e-06] \
+  optimization.max_epoch=100 optimization.max_update=320000 optimization.lr=[0.00005] \
   lr_scheduler._name=fixed lr_scheduler.warmup_updates=0 \
-  optimizer._name=adam optimizer.adam_betas='[0.9,0.98]' optimizer.adam_eps=1e-08 \
-  dataset.num_workers=6 dataset.batch_size=256 dataset.max_tokens=null \
-  'dataset.valid_subset="valid"' dataset.disable_validation=false \
+  dataset.num_workers=6 dataset.batch_size=128 dataset.max_tokens=null \
+  'dataset.valid_subset="valid,test"' dataset.disable_validation=false \
   distributed_training.distributed_world_size=1 distributed_training.find_unused_parameters=true \
   checkpoint.save_dir="$OUTPUT_DIR" checkpoint.save_interval=1 checkpoint.save_interval_updates=0 \
   checkpoint.no_epoch_checkpoints=true checkpoint.no_last_checkpoints=true checkpoint.keep_last_epochs=0 \
   checkpoint.keep_best_checkpoints=1 checkpoint.no_save_optimizer_state=true \
-  checkpoint.best_checkpoint_metric=loss checkpoint.maximize_best_checkpoint_metric=false \
-  common.seed=1 common.fp16=false common.log_format=json common.log_interval=10 common.all_gather_list_size=2048000 \
+  checkpoint.best_checkpoint_metric=auroc checkpoint.maximize_best_checkpoint_metric=true \
+  common.fp16=false common.log_format=json common.log_interval=10 common.all_gather_list_size=2048000 \
   --config-dir "${FAIRSEQ_SIGNALS_ROOT}/examples/w2v_cmsc/config/finetuning/ecg_transformer" \
   --config-name diagnosis
 ```
-
-To save the best checkpoint by **validation AUROC** instead, set `checkpoint.best_checkpoint_metric=auroc` and `checkpoint.maximize_best_checkpoint_metric=true`.
 
 ---
 
